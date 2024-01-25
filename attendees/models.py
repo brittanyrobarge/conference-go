@@ -33,8 +33,13 @@ class Attendee(models.Model):
         return reverse("api_show_attendee", kwargs={"id": self.id})
 
     def create_badge(self):
-        if not hasattr(self, "badge"):
-            Badge.object.create(attendee=self)
+        #if not hasattr(self, "badge"):
+            #Badge.object.create(attendee=self)
+        try:
+            self.badge
+        except ObjectDoesNotExist:
+            Badge.objects.create(attendee=self)
+
 
 class Badge(models.Model):
     """

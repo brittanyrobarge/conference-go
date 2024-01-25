@@ -1,72 +1,54 @@
-
-from .keys import PIXEL_API_KEY, OPEN_WEATHER_API_KEY
-import json, requests
-
-
-
-# funcs that send requests and clean the data returned
+import json
+from .keys import PEXELS_API_KEY, OPEN_WEATHER_API_KEY
+import requests
 
 
-# get location image
-def get_location_image(city, state):
-    print("getting location url")
+def get_photo(city, state):
+    headers = {"Authorization": PEXELS_API_KEY}
+    params = {"per_page": 1, "query": city + " " + state}
+    url = f"https://api.pexels.com/v1/search"
+    response = requests.get(url, params=params, headers=headers)
 
-    url = f"https://api.pexels.com/v1/search?query={city},{state}&per_page=1"
-    headers = { "authorization": PIXEL_API_KEY }
-    response = requests.get(url,headers=headers)
-
-    response = json.loads(response.content)
-
-    if "status" in response:
-        return None
-    else:
-        img_url = response["photos"].pop()["url"]
-        return(img_url)
-
-
-
-def get_weather(location):
-
-
-        # location object
-    city,state = location.city,location.state.abbreviation
-    geo_url = f"http://api.openweathermap.org/geo/1.0/direct?q={city},{state},US&appid={OPEN_WEATHER_API_KEY}"
-        # api call for lat/long
-
-    geo_response = requests.get(geo_url)
-
-
-    geo_response = json.loads(geo_response.content)
-
-    # check if lat/long was returned
-    if geo_response == []:
-        return None
-    else:
-        geo_response = geo_response.pop()
-
-    # check if lat/long are present
+    content = json.loads(response.content)
     try:
-        lat,lon = geo_response["lat"],geo_response["lon"]
-    except KeyError:
-        return None
+        return {"picture_url": content["photos"][0]["src"]["original"]}
+    except (KeyError, IndexError):
+        return {"picture_url": None}
 
-        # api call for weather data
-    weather_url = f"https://api.openweathermap.org/data/2.5/weather"
-    weather_params = {
-        "lat": lat,
-        "lon": lon,
-        "units": "imperial",
+
+def get_weather_data(city, state):
+    # headers = {"Authorization": OPEN_WEATHER_API_KEY}
+    params = {
+        "q": city + "," + state + "," + "US",
         "appid": OPEN_WEATHER_API_KEY,
     }
-
-    weather_response = json.loads(requests.get(weather_url,params=weather_params).content)
-
+    url = "http://api.openweathermap.org/geo/1.0/direct"
+    response = requests.get(url, params=params)  # geo-location
+    content = json.loads(response.content)
+    print("GEOLOCATION JSON", content)
     try:
-        temp = weather_response["main"]["temp"]
-        description = weather_response["weather"][0]["description"]
+        latitude = content[0]["lat"]
+        longitude = content[0]["lon"]
+    except KeyError:
+        return {
+            "lat": None,
+            "lon": None,
+        }
+
+    params = {"lat": latitude, "lon": longitude, "appid": OPEN_WEATHER_API_KEY}
+    url = "https://api.openweathermap.org/data/2.5/weather"
+
+    weather_response = requests.get(url, params=params)  # get-weather
+
+    weather_content = json.loads(weather_response.content)
+    # Get the main temperature and the weather's description and put
+    #   them in a dictionary
+    # Return the dictionary
+    try:
+        weather_dict = {
+            "main_temperature": weather_content["main"]["temp"],
+            "description": weather_content["weather"][0]["description"],
+        }
+        return weather_dict
     except KeyError:
         return None
-
-    weather_data = {"temp":temp,"description":description}
-
-    return weather_data

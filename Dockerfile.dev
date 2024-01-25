@@ -1,5 +1,10 @@
+# Select the base image that is best for our application
 FROM python:3
+
+#We set an environment variable so that Python prints things immediately
 ENV PYTHONUNBUFFERED 1
+
+# Set the working directory to copy stuff to
 WORKDIR /app
 COPY requirements.txt requirements.txt
 RUN pip install -r requirements.txt
